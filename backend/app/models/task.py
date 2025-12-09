@@ -12,6 +12,7 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     TIMEOUT = "timeout"
+    CANCELLED = "cancelled"
 
 
 class TaskDocument(BaseModel):

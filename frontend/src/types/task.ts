@@ -1,4 +1,4 @@
-export type TaskStatusType = 'pending' | 'running' | 'completed' | 'failed' | 'timeout';
+export type TaskStatusType = 'pending' | 'running' | 'completed' | 'failed' | 'timeout' | 'cancelled';
 
 export interface Task {
   task_id: string;
@@ -32,4 +32,21 @@ export interface Agent {
 
 export interface AgentsResponse {
   agents: Agent[];
+}
+
+// Logs
+export type LogLevel = 'debug' | 'info' | 'warning' | 'error';
+
+export interface Log {
+  log_id: string;
+  task_id?: string;
+  agent_name: string;
+  level: LogLevel;
+  message: string;
+  timestamp: string;
+}
+
+export interface LogListResponse {
+  count: number;
+  logs: Log[];
 }

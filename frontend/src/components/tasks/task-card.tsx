@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TaskStatusBadge } from './task-status-badge';
 import { TaskListItem, Task } from '@/types/task';
 import { api } from '@/lib/api';
 import { formatDate, truncate } from '@/lib/utils';
-import { Trash2, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronUp, Eye, Square } from 'lucide-react';
 
 interface TaskCardProps {
   task: TaskListItem;
@@ -19,9 +19,42 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
   const [details, setDetails] = useState<Task | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Poll for updates when expanded and task is still running/pending
+  useEffect(() => {
+    const shouldPoll = expanded && details && (details.status === 'running' || details.status === 'pending');
+
+    if (shouldPoll) {
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const taskDetails = await api.getTaskStatus(task.task_id);
+          setDetails(taskDetails);
+          // Stop polling if task is no longer running/pending
+          if (taskDetails.status !== 'running' && taskDetails.status !== 'pending') {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+          }
+        } catch (error) {
+          console.error('Failed to poll task details:', error);
+        }
+      }, 2000);
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, [expanded, details?.status, task.task_id]);
 
   const handleExpand = async () => {
-    if (!expanded && !details) {
+    if (!expanded) {
+      // Always fetch fresh data when expanding
       setLoading(true);
       try {
         const taskDetails = await api.getTaskStatus(task.task_id);
@@ -36,7 +69,7 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
+    if (!confirm('Точно удалить эту задачу?')) return;
     setDeleting(true);
     try {
       await api.deleteTask(task.task_id);
@@ -45,6 +78,19 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
       console.error('Failed to delete task:', error);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleStop = async () => {
+    if (!confirm('Остановить эту задачу?')) return;
+    setStopping(true);
+    try {
+      await api.stopTask(task.task_id);
+      onDelete(); // Refresh the list
+    } catch (error) {
+      console.error('Failed to stop task:', error);
+    } finally {
+      setStopping(false);
     }
   };
 
@@ -70,6 +116,18 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
             >
               {expanded ? <ChevronUp size={16} /> : <Eye size={16} />}
             </Button>
+            {task.status === 'running' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleStop}
+                disabled={stopping}
+                className="text-orange-500 hover:text-orange-600"
+                title="Стоп"
+              >
+                <Square size={16} />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -91,11 +149,11 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
       {expanded && (
         <CardContent className="pt-0 pb-4">
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">Загружаем...</p>
           ) : details ? (
             <div className="space-y-3 text-sm">
               <div>
-                <span className="font-medium">Task ID:</span>
+                <span className="font-medium">ID задачи:</span>
                 <code className="ml-2 text-xs bg-muted px-1 py-0.5 rounded">
                   {details.task_id}
                 </code>
@@ -103,7 +161,7 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
 
               {details.prompt && (
                 <div>
-                  <span className="font-medium">Prompt:</span>
+                  <span className="font-medium">Промпт:</span>
                   <pre className="mt-1 p-2 bg-muted rounded text-xs whitespace-pre-wrap max-h-32 overflow-auto">
                     {details.prompt}
                   </pre>
@@ -112,7 +170,7 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
 
               {details.result && (
                 <div>
-                  <span className="font-medium text-green-600">Result:</span>
+                  <span className="font-medium text-green-600">Результат:</span>
                   <pre className="mt-1 p-2 bg-green-50 border border-green-200 rounded text-xs whitespace-pre-wrap max-h-64 overflow-auto">
                     {details.result}
                   </pre>
@@ -121,7 +179,7 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
 
               {details.error && (
                 <div>
-                  <span className="font-medium text-destructive">Error:</span>
+                  <span className="font-medium text-destructive">Ошибка:</span>
                   <pre className="mt-1 p-2 bg-red-50 border border-red-200 rounded text-xs whitespace-pre-wrap">
                     {details.error}
                   </pre>

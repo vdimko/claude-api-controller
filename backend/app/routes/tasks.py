@@ -14,7 +14,8 @@ from ..schemas import (
     TaskListItem,
     TaskListResponse,
 )
-from ..services import TaskService, run_claude_command
+from ..services import TaskService, run_claude_command, stop_task
+from ..models.task import TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -118,3 +119,31 @@ async def delete_task(
     if not deleted:
         raise HTTPException(status_code=404, detail="Task not found")
     return {"message": "Task deleted", "task_id": task_id}
+
+
+@router.post("/tasks/{task_id}/stop")
+async def stop_running_task(
+    task_id: str,
+    service: TaskService = Depends(get_task_service),
+    _: str = Depends(verify_api_key),
+) -> dict:
+    """Stop a running task."""
+    task = await service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.status != TaskStatus.RUNNING:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Task is not running (current status: {task.status})"
+        )
+
+    success = await stop_task(task_id, service)
+    if not success:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to stop task - process may have already completed"
+        )
+
+    logger.info(f"Task {task_id}: Stopped by user request")
+    return {"message": "Task stopped", "task_id": task_id}

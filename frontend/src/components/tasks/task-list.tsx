@@ -23,7 +23,7 @@ export function TaskList({ tasks, loading, onDelete }: TaskListProps) {
     return (
       <Card>
         <CardContent className="text-center py-8 text-muted-foreground">
-          No tasks found. Create one to get started!
+          Задач пока нет. Создай первую!
         </CardContent>
       </Card>
     );
@@ -31,7 +31,7 @@ export function TaskList({ tasks, loading, onDelete }: TaskListProps) {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-3">Tasks ({tasks.length})</h2>
+      <h2 className="text-lg font-semibold mb-3">Задачи ({tasks.length})</h2>
       {tasks.map((task) => (
         <TaskCard key={task.task_id} task={task} onDelete={onDelete} />
       ))}

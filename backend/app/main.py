@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import connect_to_mongo, close_mongo_connection
-from .routes import tasks, agents, health
+from .routes import tasks, agents, health, logs
 
 # Configure logging
 logging.basicConfig(
@@ -46,6 +46,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(tasks.router, prefix="/api")
 app.include_router(agents.router, prefix="/api")
+app.include_router(logs.router, prefix="/api")
 
 
 if __name__ == "__main__":

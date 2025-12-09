@@ -21,9 +21,8 @@ export function TaskForm({ agents, onTaskCreated }: TaskFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agentName || !prompt.trim()) return;
+  const submitTask = async () => {
+    if (!agentName || !prompt.trim() || loading) return;
 
     setLoading(true);
     setError(null);
@@ -39,39 +38,50 @@ export function TaskForm({ agents, onTaskCreated }: TaskFormProps) {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitTask();
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Play size={20} />
-          Create New Task
+          Запустить задачу
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="agent">Agent</Label>
+            <Label htmlFor="agent">Агент</Label>
             <Select
               id="agent"
               value={agentName}
               onChange={(e) => setAgentName(e.target.value)}
             >
-              <option value="">Select an agent...</option>
+              <option value="">Выбери агента...</option>
               {agents.map((agent) => (
                 <option key={agent.name} value={agent.name}>
-                  {agent.name} {agent.has_claude_md ? '(has CLAUDE.md)' : ''}
+                  {agent.name} {agent.has_claude_md ? '(с инструкцией)' : ''}
                 </option>
               ))}
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="prompt">Prompt</Label>
+            <Label htmlFor="prompt">Промпт</Label>
             <Textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Enter your prompt for the Claude agent..."
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  submitTask();
+                }
+              }}
+              placeholder="Напиши что надо сделать... (Ctrl/Cmd + Enter для отправки)"
               rows={5}
             />
           </div>
@@ -85,7 +95,7 @@ export function TaskForm({ agents, onTaskCreated }: TaskFormProps) {
             disabled={loading || !agentName || !prompt.trim()}
             className="w-full"
           >
-            {loading ? 'Creating...' : 'Run Task'}
+            {loading ? 'Запускаем...' : 'Погнали!'}
           </Button>
         </form>
       </CardContent>

@@ -1,4 +1,4 @@
-import { Task, TaskListResponse, AgentsResponse } from '@/types/task';
+import { Task, TaskListResponse, AgentsResponse, LogListResponse } from '@/types/task';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
@@ -43,7 +43,18 @@ export const api = {
   deleteTask: (taskId: string) =>
     apiRequest<{ message: string }>(`/tasks/${taskId}`, { method: 'DELETE' }),
 
+  stopTask: (taskId: string) =>
+    apiRequest<{ message: string }>(`/tasks/${taskId}/stop`, { method: 'POST' }),
+
   // Agents
   listAgents: () =>
     apiRequest<AgentsResponse>('/agents'),
+
+  // Logs
+  listLogs: (agentName?: string, limit: number = 50) => {
+    const params = new URLSearchParams();
+    if (agentName) params.append('agent_name', agentName);
+    params.append('limit', limit.toString());
+    return apiRequest<LogListResponse>(`/logs?${params.toString()}`);
+  },
 };

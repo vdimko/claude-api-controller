@@ -24,6 +24,13 @@ async def connect_to_mongo():
 
     # Test connection
     await db.client.admin.command('ping')
+
+    # Create indexes for logs collection
+    await db.db.logs.create_index("agent_name")
+    await db.db.logs.create_index("task_id")
+    await db.db.logs.create_index("timestamp")
+    await db.db.logs.create_index([("agent_name", 1), ("timestamp", -1)])
+
     logger.info("Successfully connected to MongoDB")
 
 

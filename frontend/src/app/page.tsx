@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { TaskList } from '@/components/tasks/task-list';
 import { TaskForm } from '@/components/tasks/task-form';
 import { AgentSelector } from '@/components/agents/agent-selector';
+import { LogPanel } from '@/components/logs/log-panel';
 import { useTasks } from '@/hooks/use-tasks';
 import { useAgents } from '@/hooks/use-agents';
+import { useLogs } from '@/hooks/use-logs';
 import { Bot, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -13,26 +15,27 @@ export default function Dashboard() {
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>();
   const { tasks, loading: tasksLoading, error: tasksError, refetch } = useTasks(selectedAgent);
   const { agents, loading: agentsLoading, error: agentsError } = useAgents();
+  const { logs, loading: logsLoading } = useLogs(selectedAgent);
 
   const error = tasksError || agentsError;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-14">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Bot className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-xl font-bold">Claude API Dashboard</h1>
+                <h1 className="text-xl font-bold">Пульт Управления Клодом</h1>
                 <p className="text-sm text-muted-foreground">
-                  Task management for Claude CLI agents
+                  Гоняем агентов как надо
                 </p>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={refetch}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+              Обновить
             </Button>
           </div>
         </div>
@@ -41,7 +44,7 @@ export default function Dashboard() {
       <main className="container mx-auto px-4 py-6">
         {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
-            <p className="font-medium">Error</p>
+            <p className="font-medium">Ёпта, ошибка!</p>
             <p className="text-sm">{error}</p>
           </div>
         )}
@@ -56,13 +59,13 @@ export default function Dashboard() {
 
             {agentsLoading && (
               <p className="mt-4 text-sm text-muted-foreground">
-                Loading agents...
+                Подгружаем агентов...
               </p>
             )}
 
             {agents.length === 0 && !agentsLoading && (
               <p className="mt-4 text-sm text-muted-foreground">
-                No agents found. Create a directory in CUSTOM_AGENTS/ to add an agent.
+                Агентов нет. Создай папку в CUSTOM_AGENTS/ чтобы добавить агента.
               </p>
             )}
           </div>
@@ -76,7 +79,7 @@ export default function Dashboard() {
                 onSelect={setSelectedAgent}
               />
               <p className="text-sm text-muted-foreground">
-                Auto-refresh: 3s
+                Автообновление: 3 сек
               </p>
             </div>
             <TaskList
@@ -90,9 +93,12 @@ export default function Dashboard() {
 
       <footer className="border-t mt-8">
         <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
-          Claude API Controller v2.0 - MongoDB Storage
+          Пульт Управления Клодом v2.0 — Монга рулит
         </div>
       </footer>
+
+      {/* Log Panel - fixed at bottom */}
+      <LogPanel logs={logs} loading={logsLoading} />
     </div>
   );
 }

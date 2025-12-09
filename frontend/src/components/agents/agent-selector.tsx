@@ -14,7 +14,7 @@ export function AgentSelector({ agents, selected, onSelect }: AgentSelectorProps
   return (
     <div className="flex items-center gap-3">
       <Label htmlFor="filter-agent" className="whitespace-nowrap">
-        Filter by agent:
+        Фильтр по агенту:
       </Label>
       <Select
         id="filter-agent"
@@ -22,7 +22,7 @@ export function AgentSelector({ agents, selected, onSelect }: AgentSelectorProps
         onChange={(e) => onSelect(e.target.value || undefined)}
         className="w-48"
       >
-        <option value="">All agents</option>
+        <option value="">Все агенты</option>
         {agents.map((agent) => (
           <option key={agent.name} value={agent.name}>
             {agent.name}

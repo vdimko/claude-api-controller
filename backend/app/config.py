@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     claude_timeout: int = 120
     agents_dir: str = str(Path(__file__).parent.parent.parent / "CUSTOM_AGENTS")
 
+    # Logging
+    logs_dir: str = str(Path(__file__).parent.parent.parent / "logs")
+
     # Server
     host: str = "127.0.0.1"
     port: int = 8000
