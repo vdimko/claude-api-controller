@@ -4,46 +4,89 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FastAPI service that provides async endpoints to control a local Claude CLI installation. Tasks are submitted with an `agent_name` which determines the working directory where `claude -p "{prompt}"` executes.
+FastAPI service with MongoDB persistence and Next.js Web UI that provides async endpoints to control a local Claude CLI installation. Tasks are submitted with an `agent_name` which determines the working directory where `claude -p "{prompt}"` executes.
 
 ## Commands
 
 ```bash
-# Install dependencies
-python3 -m pip install -r requirements.txt
-
-# Start server (uses PORT from .env)
+# Start all services (MongoDB + Backend + Frontend)
 ./start.sh
-# or
-python3 main.py
 
-# Run tests
-CLAUDE_API_KEY="test-key" python3 -m pytest test_main.py -v
+# Or start individually:
 
-# Run single test
-CLAUDE_API_KEY="test-key" python3 -m pytest test_main.py::TestClassName::test_method -v
+# MongoDB
+cd docker && docker-compose up -d
+
+# Backend
+cd backend
+python3 -m pip install -r requirements.txt
+CLAUDE_API_KEY="test-key" python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+
+# Run backend tests
+cd backend
+CLAUDE_API_KEY="test-key" python3 -m pytest tests/ -v
 ```
 
 ## Configuration
 
 Copy `.env.example` to `.env`. Required: `CLAUDE_API_KEY`. Server exits with error if missing.
 
-Environment variables: `CLAUDE_API_KEY` (required), `CLAUDE_TIMEOUT`, `AGENTS_DIR`, `HOST`, `PORT`.
+Environment variables:
+- `CLAUDE_API_KEY` (required) - API authentication
+- `MONGODB_URL` - MongoDB connection string (default: localhost:27018)
+- `CLAUDE_TIMEOUT` - Command timeout seconds (default: 120)
+- `AGENTS_DIR` - Agent directories location (default: ./CUSTOM_AGENTS)
+- `CORS_ORIGINS` - Allowed CORS origins (default: ["http://localhost:3000"])
 
 ## Architecture
 
-Single-file FastAPI app (`main.py`) with background task execution pattern:
+### Backend (FastAPI + MongoDB)
 
-- **POST /run** - Accepts `{agent_name, prompt, timeout?}`, spawns background task, returns `task_id`
-- **GET /status/{task_id}** - Poll for task result (pending/running/completed/failed/timeout)
-- **GET /tasks** - List all tasks
-- **DELETE /tasks/{task_id}** - Remove task from store
-- **GET /health** - No auth required
+Modular structure in `backend/app/`:
 
-Tasks execute `claude -p "{prompt}"` in `AGENTS_DIR/{agent_name}/` directory. Each agent needs its own subdirectory under `CUSTOM_AGENTS/` with optional `CLAUDE.md` for agent-specific instructions.
+- **main.py** - App initialization, CORS, lifespan (MongoDB connection)
+- **config.py** - Pydantic Settings for configuration
+- **database.py** - Motor async MongoDB client
+- **routes/** - API endpoints (tasks.py, agents.py, health.py)
+- **services/** - Business logic (task_service.py, claude_executor.py)
+- **models/** - MongoDB document models
+- **schemas/** - Request/Response Pydantic models
+- **auth/** - API key verification
 
-Authentication via `X-API-Key` header on all endpoints except `/health`.
+API Endpoints (prefixed with `/api`):
+- **POST /api/run** - Submit task, returns `task_id`
+- **GET /api/status/{task_id}** - Get task status and result
+- **GET /api/tasks** - List all tasks (with optional agent_name filter)
+- **DELETE /api/tasks/{task_id}** - Delete task
+- **GET /api/agents** - List available agents
+- **GET /health** - Health check (no auth)
+
+### Frontend (Next.js + shadcn/ui)
+
+Located in `frontend/src/`:
+
+- **app/** - Next.js app router pages
+- **components/** - React components (tasks/, agents/, ui/)
+- **hooks/** - Custom React hooks (use-tasks.ts, use-agents.ts)
+- **lib/** - API client and utilities
+- **types/** - TypeScript type definitions
+
+### MongoDB
+
+Docker container on port 27018 (non-standard for security):
+- Database: `claude_api`
+- Collection: `tasks`
+- User: `claude_user` / `claude_pass_2024`
+
+### Legacy Version
+
+Original single-file version preserved in `legacy/` for reference and fallback.
 
 ## Testing Notes
 
-Tests use `tmp_path` fixture to create isolated agent directories. The `setup_test_agent` fixture auto-creates test agent directory and sets `main.AGENTS_DIR`.
+Backend tests in `backend/tests/` use mongomock-motor for database mocking.

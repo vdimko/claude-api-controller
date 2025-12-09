@@ -31,3 +31,10 @@ Thumbs.db
 
 # Claude
 .claude/
+
+# Node.js / Frontend
+node_modules/
+.next/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
