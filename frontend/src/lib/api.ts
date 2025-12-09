@@ -1,4 +1,4 @@
-import { Task, TaskListResponse, AgentsResponse, LogListResponse } from '@/types/task';
+import { Task, TaskListResponse, AgentsResponse, LogListResponse, ClaudeOptions } from '@/types/task';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
@@ -26,12 +26,33 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Pr
   return response.json();
 }
 
+// Убираем undefined значения и UI-only поля из объекта
+function cleanOptions(options?: ClaudeOptions): ClaudeOptions | undefined {
+  if (!options) return undefined;
+
+  // Поля, которые только для UI и не отправляются на сервер
+  const uiOnlyFields = ['override_claude_md'];
+
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(options)) {
+    // Пропускаем UI-only поля
+    if (uiOnlyFields.includes(key)) continue;
+    if (value !== undefined && value !== null && value !== '') {
+      // Для массивов проверяем что они не пустые
+      if (Array.isArray(value) && value.length === 0) continue;
+      cleaned[key] = value;
+    }
+  }
+
+  return Object.keys(cleaned).length > 0 ? cleaned as ClaudeOptions : undefined;
+}
+
 export const api = {
   // Tasks
-  createTask: (agentName: string, prompt: string, timeout?: number) =>
+  createTask: (agentName: string, prompt: string, timeout?: number, options?: ClaudeOptions) =>
     apiRequest<{ task_id: string }>('/run', {
       method: 'POST',
-      body: { agent_name: agentName, prompt, timeout },
+      body: { agent_name: agentName, prompt, timeout, options: cleanOptions(options) },
     }),
 
   getTaskStatus: (taskId: string) =>

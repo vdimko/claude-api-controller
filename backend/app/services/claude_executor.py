@@ -1,11 +1,13 @@
 import asyncio
+import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from ..models.task import TaskStatus
 from ..config import get_settings
 from ..database import get_database
+from ..schemas.task import ClaudeOptions
 from .task_service import TaskService
 from .combined_logger import CombinedLogger
 
@@ -13,6 +15,126 @@ logger = logging.getLogger(__name__)
 
 # Global dict to store running processes for stop functionality
 running_processes: Dict[str, asyncio.subprocess.Process] = {}
+
+
+def build_command_args(prompt: str, options: Optional[ClaudeOptions] = None) -> List[str]:
+    """Построить аргументы команды claude CLI."""
+    args = ["claude", "-p", prompt]
+
+    if not options:
+        return args
+
+    # Основные опции
+    if options.verbose:
+        args.append("--verbose")
+
+    if options.output_format:
+        args.extend(["--output-format", options.output_format.value])
+
+    if options.input_format:
+        args.extend(["--input-format", options.input_format.value])
+
+    if options.model:
+        args.extend(["--model", options.model])
+
+    if options.fallback_model:
+        args.extend(["--fallback-model", options.fallback_model])
+
+    # Промпты
+    if options.system_prompt:
+        args.extend(["--system-prompt", options.system_prompt])
+
+    if options.append_system_prompt:
+        args.extend(["--append-system-prompt", options.append_system_prompt])
+
+    # JSON вывод
+    if options.json_schema:
+        args.extend(["--json-schema", json.dumps(options.json_schema)])
+
+    if options.include_partial_messages:
+        args.append("--include-partial-messages")
+
+    # Инструменты
+    if options.allowed_tools:
+        args.extend(["--allowed-tools", *options.allowed_tools])
+
+    if options.disallowed_tools:
+        args.extend(["--disallowed-tools", *options.disallowed_tools])
+
+    if options.tools:
+        args.extend(["--tools", *options.tools])
+
+    if options.dangerously_skip_permissions:
+        args.append("--dangerously-skip-permissions")
+
+    if options.allow_dangerously_skip_permissions:
+        args.append("--allow-dangerously-skip-permissions")
+
+    # Сессии
+    if options.continue_session:
+        args.append("--continue")
+
+    if options.resume_session:
+        args.extend(["--resume", options.resume_session])
+
+    if options.fork_session:
+        args.append("--fork-session")
+
+    if options.session_id:
+        args.extend(["--session-id", options.session_id])
+
+    # MCP и плагины
+    if options.mcp_config:
+        args.extend(["--mcp-config", *options.mcp_config])
+
+    if options.strict_mcp_config:
+        args.append("--strict-mcp-config")
+
+    if options.mcp_debug:
+        args.append("--mcp-debug")
+
+    if options.plugin_dirs:
+        args.extend(["--plugin-dir", *options.plugin_dirs])
+
+    if options.disable_slash_commands:
+        args.append("--disable-slash-commands")
+
+    # Агенты
+    if options.agent:
+        args.extend(["--agent", options.agent])
+
+    if options.agents_json:
+        args.extend(["--agents", json.dumps(options.agents_json)])
+
+    # Настройки
+    if options.permission_mode:
+        args.extend(["--permission-mode", options.permission_mode.value])
+
+    if options.betas:
+        args.extend(["--betas", *options.betas])
+
+    if options.settings_file:
+        args.extend(["--settings", options.settings_file])
+
+    if options.add_dirs:
+        args.extend(["--add-dir", *options.add_dirs])
+
+    if options.setting_sources:
+        args.extend(["--setting-sources", options.setting_sources])
+
+    # Дебаг
+    if options.debug:
+        args.extend(["--debug", options.debug])
+
+    # IDE
+    if options.ide:
+        args.append("--ide")
+
+    # Streaming
+    if options.replay_user_messages:
+        args.append("--replay-user-messages")
+
+    return args
 
 
 def get_running_process(task_id: str) -> Optional[asyncio.subprocess.Process]:
@@ -79,7 +201,8 @@ async def run_claude_command(
     task_id: str,
     agent_name: str,
     prompt: str,
-    timeout: int
+    timeout: int,
+    options: Optional[ClaudeOptions] = None
 ) -> None:
     """Execute claude CLI command asynchronously in agent directory."""
     settings = get_settings()
@@ -112,19 +235,25 @@ async def run_claude_command(
         await combined_logger.error(agent_name, error_msg, task_id)
         return
 
-    # Build command arguments
-    cmd_args = ["claude", "-p", prompt]
+    # Build command arguments using options
+    effective_options = options or ClaudeOptions()
 
-    # Check for CLAUDE.md in agent directory and use as system prompt
-    claude_md_path = agent_dir / "CLAUDE.md"
-    if claude_md_path.exists():
-        try:
-            system_prompt = claude_md_path.read_text(encoding="utf-8").strip()
-            if system_prompt:
-                cmd_args.extend(["--system-prompt", system_prompt])
-                logger.info(f"Task {task_id}: Using CLAUDE.md as system prompt ({len(system_prompt)} chars)")
-        except Exception as e:
-            logger.warning(f"Task {task_id}: Failed to read CLAUDE.md: {e}")
+    # Check for CLAUDE.md in agent directory and use as system prompt if not overridden
+    if not effective_options.system_prompt:
+        claude_md_path = agent_dir / "CLAUDE.md"
+        if claude_md_path.exists():
+            try:
+                system_prompt = claude_md_path.read_text(encoding="utf-8").strip()
+                if system_prompt:
+                    effective_options = effective_options.model_copy(
+                        update={"system_prompt": system_prompt}
+                    )
+                    logger.info(f"Task {task_id}: Using CLAUDE.md as system prompt ({len(system_prompt)} chars)")
+            except Exception as e:
+                logger.warning(f"Task {task_id}: Failed to read CLAUDE.md: {e}")
+
+    cmd_args = build_command_args(prompt, effective_options)
+    logger.debug(f"Task {task_id}: Command args: {' '.join(cmd_args[:5])}...")
 
     try:
         process = await asyncio.create_subprocess_exec(

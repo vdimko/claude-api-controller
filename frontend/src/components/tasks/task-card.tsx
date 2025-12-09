@@ -8,6 +8,7 @@ import { TaskListItem, Task } from '@/types/task';
 import { api } from '@/lib/api';
 import { formatDate, truncate, formatDuration } from '@/lib/utils';
 import { Trash2, ChevronDown, ChevronUp, Eye, Square } from 'lucide-react';
+import { JsonViewer } from '@/components/ui/json-viewer';
 
 interface TaskCardProps {
   task: TaskListItem;
@@ -184,9 +185,9 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
               {details.result && (
                 <div>
                   <span className="font-medium text-green-600 dark:text-green-400">Результат:</span>
-                  <pre className="mt-1 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-xs whitespace-pre-wrap max-h-64 overflow-auto">
-                    {details.result}
-                  </pre>
+                  <div className="mt-1 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded max-h-96 overflow-auto">
+                    <JsonViewer data={details.result} />
+                  </div>
                 </div>
               )}
 

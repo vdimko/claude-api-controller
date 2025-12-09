@@ -1,14 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { api } from '@/lib/api';
-import { Agent } from '@/types/task';
+import { Agent, ClaudeOptions } from '@/types/task';
+import { TaskOptions } from './task-options';
 import { Play } from 'lucide-react';
+
+const STORAGE_KEY_PREFIX = 'claude_agent_options_';
+
+// Загрузить настройки агента из localStorage
+function loadAgentOptions(agentName: string): ClaudeOptions {
+  if (!agentName || typeof window === 'undefined') return {};
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_PREFIX + agentName);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+// Сохранить настройки агента в localStorage
+function saveAgentOptions(agentName: string, options: ClaudeOptions): void {
+  if (!agentName || typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY_PREFIX + agentName, JSON.stringify(options));
+  } catch {
+    // Игнорируем ошибки localStorage
+  }
+}
 
 interface TaskFormProps {
   agents: Agent[];
@@ -18,8 +42,27 @@ interface TaskFormProps {
 export function TaskForm({ agents, onTaskCreated }: TaskFormProps) {
   const [agentName, setAgentName] = useState('');
   const [prompt, setPrompt] = useState('');
+  const [options, setOptions] = useState<ClaudeOptions>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Загружаем настройки при смене агента
+  useEffect(() => {
+    if (agentName) {
+      const savedOptions = loadAgentOptions(agentName);
+      setOptions(savedOptions);
+    } else {
+      setOptions({});
+    }
+  }, [agentName]);
+
+  // Обёртка для onChange с автосохранением
+  const handleOptionsChange = useCallback((newOptions: ClaudeOptions) => {
+    setOptions(newOptions);
+    if (agentName) {
+      saveAgentOptions(agentName, newOptions);
+    }
+  }, [agentName]);
 
   const submitTask = async () => {
     if (!agentName || !prompt.trim() || loading) return;
@@ -28,8 +71,9 @@ export function TaskForm({ agents, onTaskCreated }: TaskFormProps) {
     setError(null);
 
     try {
-      await api.createTask(agentName, prompt);
+      await api.createTask(agentName, prompt, undefined, options);
       setPrompt('');
+      // Не сбрасываем options - они сохранены для этого агента
       onTaskCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
@@ -85,6 +129,8 @@ export function TaskForm({ agents, onTaskCreated }: TaskFormProps) {
               rows={5}
             />
           </div>
+
+          <TaskOptions options={options} onChange={handleOptionsChange} />
 
           {error && (
             <p className="text-sm text-destructive">{error}</p>

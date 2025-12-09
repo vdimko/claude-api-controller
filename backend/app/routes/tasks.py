@@ -53,7 +53,8 @@ async def create_task(
         task.task_id,
         request.agent_name,
         request.prompt,
-        timeout
+        timeout,
+        request.options
     )
 
     return TaskResponse(task_id=task.task_id)
