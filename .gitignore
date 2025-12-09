@@ -38,3 +38,7 @@ node_modules/
 .turbo/
 *.tsbuildinfo
 next-env.d.ts
+
+# Logs
+logs/
+*.log
