@@ -1,0 +1,268 @@
+{
+  "name": "Sample Agent Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "authentication": "n8nUserAuth",
+        "options": {}
+      },
+      "id": "9e9e0a30-33db-4f2c-a952-35090053d499",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -896,
+        -320
+      ],
+      "webhookId": "sample-agent-chat",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://flora-unbeckoned-nonliterally.ngrok-free.dev/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "your-secret-api-key-here"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ agent_name: \"sample_agent\", prompt: $json.chatInput, timeout: 300 }) }}",
+        "options": {}
+      },
+      "id": "7a79149a-331b-4f93-8347-33f5a6b7d87c",
+      "name": "Submit Task to Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -672,
+        -320
+      ],
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "url": "=https://flora-unbeckoned-nonliterally.ngrok-free.dev/status/{{ $json.task_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "your-secret-api-key-here"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eceed43f-4a44-4d40-aaf5-9e236e851259",
+      "name": "Poll Task Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -464,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "condition-completed",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a82ae0b4-ec99-427b-916b-29dc8fd55635",
+      "name": "Is Completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-pending",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "pending",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "condition-running",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "running",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "cb84fd5f-1743-4390-a07c-b7bac70b6141",
+      "name": "Still Running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "437622fd-60bb-497a-8495-160310f75138",
+      "name": "Wait 2 Seconds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        -320
+      ],
+      "webhookId": "e8a6e7e9-06af-4753-89d1-f5c2c38ef243"
+    },
+    {
+      "parameters": {
+        "message": "=yo",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -496
+      ],
+      "id": "82ee9fbd-6ab4-4e40-8195-fd124eab2d62",
+      "name": "Respond to Chat"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Submit Task to Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit Task to Claude API": {
+      "main": [
+        [
+          {
+            "node": "Poll Task Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Task Status": {
+      "main": [
+        [
+          {
+            "node": "Is Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Completed?": {
+      "main": [
+        [
+          {
+            "node": "Respond to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Still Running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still Running?": {
+      "main": [
+        [
+          {
+            "node": "Wait 2 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Poll Task Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "39a45093-b0bc-46b4-83f9-1fa15f2dbf9d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "08c8fdbd5f84d675a095024f6e46c93da1d1ba0538fc41a9125a00e505a73f8e"
+  },
+  "id": "ApNiGp5iI48uazhA",
+  "tags": []
+}
