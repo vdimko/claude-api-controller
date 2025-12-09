@@ -24,7 +24,7 @@ export function LogPanel({ logs, loading }: LogPanelProps) {
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg transition-all duration-300 z-50 ${
+      className={`fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg transition-all duration-300 z-50 dark:border-t-2 dark:border-[hsl(320_100%_60%_/_0.5)] dark:shadow-[0_-5px_20px_hsl(320_100%_60%_/_0.2)] ${
         expanded ? 'h-72' : 'h-12'
       }`}
     >

@@ -170,8 +170,8 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
 
               {details.result && (
                 <div>
-                  <span className="font-medium text-green-600">Результат:</span>
-                  <pre className="mt-1 p-2 bg-green-50 border border-green-200 rounded text-xs whitespace-pre-wrap max-h-64 overflow-auto">
+                  <span className="font-medium text-green-600 dark:text-green-400">Результат:</span>
+                  <pre className="mt-1 p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-xs whitespace-pre-wrap max-h-64 overflow-auto">
                     {details.result}
                   </pre>
                 </div>
@@ -180,7 +180,7 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
               {details.error && (
                 <div>
                   <span className="font-medium text-destructive">Ошибка:</span>
-                  <pre className="mt-1 p-2 bg-red-50 border border-red-200 rounded text-xs whitespace-pre-wrap">
+                  <pre className="mt-1 p-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded text-xs whitespace-pre-wrap">
                     {details.error}
                   </pre>
                 </div>

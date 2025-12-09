@@ -10,6 +10,7 @@ import { useAgents } from '@/hooks/use-agents';
 import { useLogs } from '@/hooks/use-logs';
 import { Bot, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 
 export default function Dashboard() {
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>();
@@ -21,22 +22,25 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-14">
-      <header className="border-b">
+      <header className="border-b dark:border-b-2 dark:border-[hsl(180_100%_50%_/_0.3)] dark:shadow-[0_2px_15px_hsl(180_100%_50%_/_0.15)]">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Bot className="h-8 w-8 text-primary" />
+              <Bot className="h-8 w-8 text-primary neon-pulse" />
               <div>
-                <h1 className="text-xl font-bold">Пульт Управления Клодом</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-xl font-bold neon-glow-pink">Пульт Управления Клодом</h1>
+                <p className="text-sm text-muted-foreground neon-glow-cyan">
                   Гоняем агентов как надо
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={refetch}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Обновить
-            </Button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="outline" size="sm" onClick={refetch}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Обновить
+              </Button>
+            </div>
           </div>
         </div>
       </header>
