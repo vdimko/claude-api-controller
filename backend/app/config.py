@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
 
-    # CORS - for Next.js frontend
-    cors_origins: List[str] = ["http://localhost:3000"]
+    # CORS - for Next.js frontend (multiple ports for dev)
+    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:11102", "http://127.0.0.1:3000", "http://127.0.0.1:11102"]
 
     class Config:
         env_file = ".env"
