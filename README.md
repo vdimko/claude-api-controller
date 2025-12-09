@@ -1,61 +1,61 @@
 # Claude API Controller v2.4
 
-FastAPI service that exposes local Claude CLI as an async HTTP API with MongoDB persistence and Web UI.
+Сервак на FastAPI, который выставляет локальный Claude CLI как HTTP API с MongoDB и Web UI. Короче, управляешь Claude через браузер или curl — красота!
 
-## Features
+## Чё умеет
 
-- **Full Claude CLI Support**: All ~30 CLI options available via API and UI
-- **MongoDB Storage**: Tasks persist across restarts (Docker container on port 27018)
-- **Web Dashboard**: Next.js UI with neon underground theme, dark/light modes
-- **API Access**: RESTful endpoints for programmatic control
-- **Task Management**: Stop running tasks, delete, real-time status updates
-- **Dual Logging**: File logs + MongoDB for queryable history
-- **Settings Persistence**: Per-agent settings saved in browser localStorage
-- **JSON Viewer**: Pretty syntax-highlighted JSON results with collapsible nodes
+- **Все опции Claude CLI**: ~30 настроек прямо из UI или API
+- **MongoDB**: Задачи сохраняются, перезапуск не страшен
+- **Web UI**: Неоновая тема, тёмный/светлый режим, всё по-пацански
+- **REST API**: Для автоматизации и скриптов
+- **Управление задачами**: Останавливай, удаляй, следи в реалтайме
+- **Логирование**: В файлы + MongoDB, потом можно грепать
+- **Настройки запоминаются**: Для каждого агента отдельно в localStorage
+- **JSON Viewer**: Красивый вывод JSON с подсветкой и сворачиванием
 
-## Architecture
+## Архитектура
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Web Browser   │────▶│  Next.js UI     │────▶│  FastAPI        │
-│   (localhost)   │     │  (port 3000)    │     │  (port 8000)    │
+│   Браузер       │────▶│  Next.js UI     │────▶│  FastAPI        │
+│   (localhost)   │     │  (порт 3000)    │     │  (порт 8000)    │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
                                                         │
                                                         ▼
                                                 ┌─────────────────┐
                                                 │  MongoDB        │
-                                                │  (port 27018)   │
+                                                │  (порт 27018)   │
                                                 └─────────────────┘
 ```
 
-### Task Flow
+### Как задача живёт
 
-1. Submit task → `POST /api/run` → returns `task_id`
-2. Task stored in MongoDB with status `pending`
-3. Background coroutine runs `claude -p "{prompt}"` in agent directory
-4. Status: `pending` → `running` → `completed` | `failed` | `timeout` | `cancelled`
-5. Poll `GET /api/status/{task_id}` until terminal state
+1. Кидаешь задачу → `POST /api/run` → получаешь `task_id`
+2. Задача ложится в MongoDB со статусом `Ждём`
+3. Фоновый процесс запускает `claude -p "{prompt}"` в папке агента
+4. Статусы: `Ждём` → `Пашет` → `Готово` | `Обосрался` | `Завис` | `Отменено`
+5. Поллишь `GET /api/status/{task_id}` пока не закончится
 
-## Quick Start
+## Быстрый старт
 
 ```bash
-# 1. Start Docker (required for MongoDB)
+# 1. Запусти Docker (нужен для MongoDB)
 open -a Docker  # macOS
 
-# 2. Configure
+# 2. Настрой конфиг
 cp .env.example .env
-# Edit .env and set CLAUDE_API_KEY
+# Впиши CLAUDE_API_KEY в .env
 
-# 3. Run all services
+# 3. Погнали!
 ./start.sh
 ```
 
-Services:
+Сервисы:
 - **Web UI**: http://localhost:3000
 - **API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
+- **Swagger**: http://localhost:8000/docs
 
-## Manual Start
+## Ручной запуск
 
 ```bash
 # MongoDB
@@ -64,41 +64,41 @@ cd docker && docker-compose up -d
 # Backend
 cd backend
 python3 -m pip install -r requirements.txt
-CLAUDE_API_KEY="your-key" python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+CLAUDE_API_KEY="твой-ключ" python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
-# Frontend (new terminal)
+# Frontend (в другом терминале)
 cd frontend
 npm install
 npm run dev
 ```
 
-## API Endpoints
+## API Эндпоинты
 
-All endpoints (except `/health`) require `X-API-Key` header.
+Везде (кроме `/health`) нужен заголовок `X-API-Key`.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/run` | Submit task `{agent_name, prompt, timeout?, options?}` → `{task_id}` |
-| GET | `/api/status/{task_id}` | Get task status, result, duration, and prompt |
-| GET | `/api/tasks` | List tasks (optional `?agent_name=` filter) |
-| POST | `/api/tasks/{task_id}/stop` | Stop running task |
-| DELETE | `/api/tasks/{task_id}` | Delete task |
-| GET | `/api/agents` | List available agents |
-| GET | `/api/logs` | Get logs (optional `?agent_name=`, `?limit=`) |
-| GET | `/health` | Health check (no auth) |
+| Метод | Эндпоинт | Чё делает |
+|-------|----------|-----------|
+| POST | `/api/run` | Кинуть задачу `{agent_name, prompt, timeout?, options?}` → `{task_id}` |
+| GET | `/api/status/{task_id}` | Статус, результат, время выполнения |
+| GET | `/api/tasks` | Список задач (можно `?agent_name=` фильтр) |
+| POST | `/api/tasks/{task_id}/stop` | Остановить задачу |
+| DELETE | `/api/tasks/{task_id}` | Удалить задачу |
+| GET | `/api/agents` | Список агентов |
+| GET | `/api/logs` | Логи (можно `?agent_name=`, `?limit=`) |
+| GET | `/health` | Проверка здоровья (без авторизации) |
 
-## Claude CLI Options
+## Опции Claude CLI
 
-All Claude CLI options supported via `options` field in `/api/run`:
+Все опции CLI доступны через поле `options` в `/api/run`:
 
 ```json
 {
-  "agent_name": "my_agent",
-  "prompt": "Hello",
+  "agent_name": "мой_агент",
+  "prompt": "Привет",
   "options": {
     "model": "sonnet",
     "output_format": "json",
-    "system_prompt": "You are helpful assistant",
+    "system_prompt": "Ты полезный помощник",
     "json_schema": {"type": "object", "properties": {...}},
     "verbose": true,
     "allowed_tools": ["Read", "Bash(git:*)"],
@@ -107,52 +107,52 @@ All Claude CLI options supported via `options` field in `/api/run`:
 }
 ```
 
-### Available Options
+### Доступные опции
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `model` | string | Model: `sonnet`, `opus`, `haiku` |
-| `output_format` | string | Output: `text`, `json`, `stream-json` |
-| `system_prompt` | string | Override CLAUDE.md |
-| `append_system_prompt` | string | Add to system prompt |
-| `json_schema` | object | JSON Schema for structured output |
-| `verbose` | boolean | Verbose output |
-| `allowed_tools` | string[] | Allowed tools list |
-| `disallowed_tools` | string[] | Disallowed tools list |
-| `dangerously_skip_permissions` | boolean | Skip permission checks |
+| Опция | Тип | Чё делает |
+|-------|-----|-----------|
+| `model` | string | Модель: `sonnet`, `opus`, `haiku` |
+| `output_format` | string | Формат: `text`, `json`, `stream-json` |
+| `system_prompt` | string | Переопределить CLAUDE.md |
+| `append_system_prompt` | string | Добавить к системному промпту |
+| `json_schema` | object | JSON Schema для структурированного вывода |
+| `verbose` | boolean | Подробный вывод |
+| `allowed_tools` | string[] | Разрешённые инструменты |
+| `disallowed_tools` | string[] | Запрещённые инструменты |
+| `dangerously_skip_permissions` | boolean | Пропустить проверки (осторожно!) |
 | `permission_mode` | string | `acceptEdits`, `bypassPermissions`, `default`, `dontAsk`, `plan` |
-| `continue_session` | boolean | Continue last session |
-| `resume_session` | string | Resume session by ID |
-| `mcp_config` | string[] | MCP config files |
-| `fallback_model` | string | Fallback model |
-| `add_dirs` | string[] | Additional working directories |
+| `continue_session` | boolean | Продолжить последнюю сессию |
+| `resume_session` | string | Возобновить сессию по ID |
+| `mcp_config` | string[] | Файлы конфига MCP |
+| `fallback_model` | string | Запасная модель |
+| `add_dirs` | string[] | Дополнительные рабочие директории |
 
-## Agents
+## Агенты
 
-Create agent directories under `CUSTOM_AGENTS/`:
+Создавай папки агентов в `CUSTOM_AGENTS/`:
 
 ```
 CUSTOM_AGENTS/
-├── my_agent/
-│   └── CLAUDE.md  # Agent instructions (used as system prompt by default)
+├── мой_агент/
+│   └── CLAUDE.md  # Инструкции (по умолчанию как system prompt)
 ├── bold_json/
-│   └── CLAUDE.md  # JSON response agent
+│   └── CLAUDE.md  # Агент для JSON ответов
 └── pushkin/
-    └── CLAUDE.md  # Pushkin-style response agent
+    └── CLAUDE.md  # Агент в стиле Пушкина
 ```
 
-CLAUDE.md is automatically used as system prompt unless overridden in options.
+CLAUDE.md автоматом используется как system prompt, если не переопределишь в options.
 
-## Example API Usage
+## Примеры использования API
 
 ```bash
-# Submit task with options
+# Кинуть задачу с опциями
 curl -X POST http://localhost:8000/api/run \
-  -H "X-API-Key: your-key" \
+  -H "X-API-Key: твой-ключ" \
   -H "Content-Type: application/json" \
   -d '{
-    "agent_name": "my_agent",
-    "prompt": "Hello",
+    "agent_name": "мой_агент",
+    "prompt": "Привет",
     "options": {
       "model": "sonnet",
       "output_format": "json"
@@ -160,94 +160,94 @@ curl -X POST http://localhost:8000/api/run \
   }'
 # {"task_id": "abc-123"}
 
-# Poll status
-curl http://localhost:8000/api/status/abc-123 -H "X-API-Key: your-key"
+# Проверить статус
+curl http://localhost:8000/api/status/abc-123 -H "X-API-Key: твой-ключ"
 # {"status": "completed", "result": "...", "duration_sec": 5.2}
 
-# Stop running task
-curl -X POST http://localhost:8000/api/tasks/abc-123/stop -H "X-API-Key: your-key"
+# Остановить задачу
+curl -X POST http://localhost:8000/api/tasks/abc-123/stop -H "X-API-Key: твой-ключ"
 
-# List tasks with filter
-curl "http://localhost:8000/api/tasks?agent_name=my_agent" -H "X-API-Key: your-key"
+# Список задач с фильтром
+curl "http://localhost:8000/api/tasks?agent_name=мой_агент" -H "X-API-Key: твой-ключ"
 
-# Get logs
-curl "http://localhost:8000/api/logs?agent_name=my_agent&limit=50" -H "X-API-Key: your-key"
+# Посмотреть логи
+curl "http://localhost:8000/api/logs?agent_name=мой_агент&limit=50" -H "X-API-Key: твой-ключ"
 
-# List agents
-curl http://localhost:8000/api/agents -H "X-API-Key: your-key"
-# {"agents": [{"name": "my_agent", "has_claude_md": true}]}
+# Список агентов
+curl http://localhost:8000/api/agents -H "X-API-Key: твой-ключ"
+# {"agents": [{"name": "мой_агент", "has_claude_md": true}]}
 ```
 
-## Web UI Features
+## Фичи Web UI
 
-- **Create tasks**: Select agent, enter prompt, configure CLI options
-- **CLI Options Panel**: Collapsible panel with all Claude CLI settings
-- **Per-agent Settings**: Options saved in localStorage for each agent
-- **View tasks**: Real-time status updates (3s polling)
-- **Stop/Delete**: Control running tasks
-- **JSON Viewer**: Pretty syntax-highlighted results with collapsible nodes
-- **Filter by agent**: Dropdown selector (syncs tasks and logs)
-- **Status badges**: Color-coded task states (Russian UI)
-- **Dual logging**: View logs in collapsible bottom panel
-- **Dark/Light modes**: Theme toggle with neon underground style
+- **Создание задач**: Выбираешь агента, пишешь промпт, настраиваешь опции
+- **Панель настроек CLI**: Сворачиваемая панель со всеми опциями Claude
+- **Настройки по агентам**: Сохраняются в localStorage для каждого агента
+- **Список задач**: Реалтайм обновление (каждые 3 сек)
+- **Стоп/Удалить**: Управляй запущенными задачами
+- **JSON Viewer**: Красивый вывод с подсветкой синтаксиса и сворачиванием
+- **Фильтр по агенту**: Выпадашка (синхронизирует задачи и логи)
+- **Статусы по-пацански**: Ждём, Пашет, Готово, Обосрался, Завис, Отменено
+- **Логи внизу**: Сворачиваемая панель с логами
+- **Тёмная/Светлая тема**: Переключалка с неоновым стилем
 
-## Project Structure
+## Структура проекта
 
 ```
 Claude_API/
-├── backend/           # FastAPI application
+├── backend/           # FastAPI приложение
 │   ├── app/
-│   │   ├── main.py        # App init, CORS, lifespan
+│   │   ├── main.py        # Инициализация, CORS, lifespan
 │   │   ├── config.py      # Pydantic Settings
-│   │   ├── database.py    # Motor MongoDB client
-│   │   ├── routes/        # API endpoints
-│   │   ├── services/      # Business logic (claude_executor, task_service)
-│   │   ├── models/        # MongoDB document models
-│   │   └── schemas/       # Request/Response schemas (ClaudeOptions)
+│   │   ├── database.py    # Motor MongoDB клиент
+│   │   ├── routes/        # API эндпоинты
+│   │   ├── services/      # Бизнес-логика (claude_executor, task_service)
+│   │   ├── models/        # MongoDB модели документов
+│   │   └── schemas/       # Request/Response схемы (ClaudeOptions)
 │   └── requirements.txt
 ├── frontend/          # Next.js Web UI
 │   └── src/
-│       ├── app/           # Pages (App Router)
-│       ├── components/    # React components
+│       ├── app/           # Страницы (App Router)
+│       ├── components/    # React компоненты
 │       │   ├── tasks/     # TaskForm, TaskList, TaskCard, TaskOptions
 │       │   ├── logs/      # LogPanel
-│       │   └── ui/        # Base components, JsonViewer
-│       ├── hooks/         # Custom hooks (use-tasks, use-logs)
-│       └── lib/           # API client
-├── docker/            # MongoDB Docker config
-├── logs/              # File logs per agent
-├── legacy/            # Original single-file version
-├── CUSTOM_AGENTS/     # Agent directories
-├── .env.example       # Environment template
-└── start.sh           # All-in-one starter
+│       │   └── ui/        # Базовые компоненты, JsonViewer
+│       ├── hooks/         # Хуки (use-tasks, use-logs)
+│       └── lib/           # API клиент
+├── docker/            # MongoDB Docker конфиг
+├── logs/              # Файловые логи по агентам
+├── legacy/            # Старая версия (один файл)
+├── CUSTOM_AGENTS/     # Папки агентов
+├── .env.example       # Шаблон переменных окружения
+└── start.sh           # Запуск всего
 ```
 
-## Environment Variables
+## Переменные окружения
 
-See `.env.example` for all options.
+Смотри `.env.example` для полного списка.
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `CLAUDE_API_KEY` | Yes | - | API authentication key |
-| `MONGODB_URL` | No | `mongodb://...@localhost:27018/claude_api` | MongoDB connection |
-| `CLAUDE_TIMEOUT` | No | `120` | Command timeout (seconds) |
-| `AGENTS_DIR` | No | `./CUSTOM_AGENTS` | Agent directories path |
-| `CORS_ORIGINS` | No | `["http://localhost:3000"]` | Allowed CORS origins |
+| Переменная | Обязательно | По умолчанию | Чё делает |
+|------------|-------------|--------------|-----------|
+| `CLAUDE_API_KEY` | Да | - | Ключ для авторизации API |
+| `MONGODB_URL` | Нет | `mongodb://...@localhost:27018/claude_api` | Подключение к MongoDB |
+| `CLAUDE_TIMEOUT` | Нет | `120` | Таймаут команды (секунды) |
+| `AGENTS_DIR` | Нет | `./CUSTOM_AGENTS` | Путь к папкам агентов |
+| `CORS_ORIGINS` | Нет | `["http://localhost:3000"]` | Разрешённые CORS origins |
 
-## Version History
+## История версий
 
-- **v2.4**: Full Claude CLI options support, settings persistence, JSON viewer
-- **v2.3**: Task duration tracking, CLAUDE.md system prompt
-- **v2.2**: Neon underground theme, dark/light mode toggle
-- **v2.1**: Stop/delete tasks, dual logging (file + MongoDB), Russian UI
-- **v2.0**: MongoDB storage, Next.js Web UI, modular architecture
-- **v1.0**: Single-file FastAPI with in-memory storage (see `legacy/`)
+- **v2.4**: Все опции Claude CLI, сохранение настроек, JSON viewer
+- **v2.3**: Трекинг времени выполнения, CLAUDE.md как system prompt
+- **v2.2**: Неоновая тема, переключатель тёмный/светлый режим
+- **v2.1**: Стоп/удаление задач, двойное логирование, русский UI
+- **v2.0**: MongoDB, Next.js Web UI, модульная архитектура
+- **v1.0**: Один файл FastAPI с хранением в памяти (смотри `legacy/`)
 
-## Legacy Version
+## Legacy версия
 
-Original single-file version (without MongoDB) preserved in `legacy/`:
+Старая версия одним файлом (без MongoDB) лежит в `legacy/`:
 
 ```bash
 cd legacy
-CLAUDE_API_KEY="your-key" python3 main.py
+CLAUDE_API_KEY="твой-ключ" python3 main.py
 ```
