@@ -112,11 +112,23 @@ async def run_claude_command(
         await combined_logger.error(agent_name, error_msg, task_id)
         return
 
+    # Build command arguments
+    cmd_args = ["claude", "-p", prompt]
+
+    # Check for CLAUDE.md in agent directory and use as system prompt
+    claude_md_path = agent_dir / "CLAUDE.md"
+    if claude_md_path.exists():
+        try:
+            system_prompt = claude_md_path.read_text(encoding="utf-8").strip()
+            if system_prompt:
+                cmd_args.extend(["--system-prompt", system_prompt])
+                logger.info(f"Task {task_id}: Using CLAUDE.md as system prompt ({len(system_prompt)} chars)")
+        except Exception as e:
+            logger.warning(f"Task {task_id}: Failed to read CLAUDE.md: {e}")
+
     try:
         process = await asyncio.create_subprocess_exec(
-            "claude",
-            "-p",
-            prompt,
+            *cmd_args,
             cwd=str(agent_dir),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

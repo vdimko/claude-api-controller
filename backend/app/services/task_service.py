@@ -45,10 +45,30 @@ class TaskService:
         error: str = None
     ) -> bool:
         """Update task status and optionally result/error."""
+        now = datetime.now(timezone.utc)
+        status_value = status.value if isinstance(status, TaskStatus) else status
+
         update = {
-            "status": status.value if isinstance(status, TaskStatus) else status,
-            "updated_at": datetime.now(timezone.utc)
+            "status": status_value,
+            "updated_at": now
         }
+
+        # Set started_at when transitioning to RUNNING
+        if status_value == TaskStatus.RUNNING.value:
+            update["started_at"] = now
+
+        # Calculate duration for terminal states
+        if status_value in [TaskStatus.COMPLETED.value, TaskStatus.FAILED.value,
+                           TaskStatus.TIMEOUT.value, TaskStatus.CANCELLED.value]:
+            task = await self.get_task(task_id)
+            if task and task.started_at:
+                started = task.started_at
+                # Make timezone-aware if naive (MongoDB returns naive datetimes)
+                if started.tzinfo is None:
+                    started = started.replace(tzinfo=timezone.utc)
+                duration = (now - started).total_seconds()
+                update["duration_sec"] = round(duration, 2)
+
         if result is not None:
             update["result"] = result
         if error is not None:

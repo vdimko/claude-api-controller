@@ -8,7 +8,9 @@ export interface Task {
   result?: string;
   error?: string;
   created_at: string;
+  started_at?: string;
   updated_at: string;
+  duration_sec?: number;
   prompt_preview?: string;
 }
 
@@ -17,6 +19,7 @@ export interface TaskListItem {
   agent_name: string;
   status: TaskStatusType;
   created_at: string;
+  duration_sec?: number;
   prompt_preview?: string;
 }
 

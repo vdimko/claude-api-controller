@@ -24,7 +24,9 @@ class TaskDocument(BaseModel):
     result: Optional[str] = None
     error: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: Optional[datetime] = None
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    duration_sec: Optional[float] = None
     timeout_seconds: int = 120
     metadata: Dict[str, Any] = Field(default_factory=dict)
 

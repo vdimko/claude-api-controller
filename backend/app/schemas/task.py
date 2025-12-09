@@ -27,7 +27,9 @@ class TaskStatusResponse(BaseModel):
     result: Optional[str] = None
     error: Optional[str] = None
     created_at: datetime
+    started_at: Optional[datetime] = None
     updated_at: datetime
+    duration_sec: Optional[float] = None
 
 
 class TaskListItem(BaseModel):
@@ -36,6 +38,7 @@ class TaskListItem(BaseModel):
     agent_name: str
     status: TaskStatus
     created_at: datetime
+    duration_sec: Optional[float] = None
     prompt_preview: Optional[str] = None
 
 

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { TaskStatusBadge } from './task-status-badge';
 import { TaskListItem, Task } from '@/types/task';
 import { api } from '@/lib/api';
-import { formatDate, truncate } from '@/lib/utils';
+import { formatDate, truncate, formatDuration } from '@/lib/utils';
 import { Trash2, ChevronDown, ChevronUp, Eye, Square } from 'lucide-react';
 
 interface TaskCardProps {
@@ -106,6 +106,11 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
             <span className="text-xs text-muted-foreground hidden sm:inline">
               {formatDate(task.created_at)}
             </span>
+            {task.duration_sec !== undefined && task.duration_sec !== null && (
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                ({formatDuration(task.duration_sec)})
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -152,11 +157,19 @@ export function TaskCard({ task, onDelete }: TaskCardProps) {
             <p className="text-sm text-muted-foreground">Загружаем...</p>
           ) : details ? (
             <div className="space-y-3 text-sm">
-              <div>
-                <span className="font-medium">ID задачи:</span>
-                <code className="ml-2 text-xs bg-muted px-1 py-0.5 rounded">
-                  {details.task_id}
-                </code>
+              <div className="flex flex-wrap gap-4">
+                <div>
+                  <span className="font-medium">ID:</span>
+                  <code className="ml-2 text-xs bg-muted px-1 py-0.5 rounded">
+                    {details.task_id}
+                  </code>
+                </div>
+                {details.duration_sec !== undefined && details.duration_sec !== null && (
+                  <div>
+                    <span className="font-medium">Время:</span>
+                    <span className="ml-2 text-xs">{formatDuration(details.duration_sec)}</span>
+                  </div>
+                )}
               </div>
 
               {details.prompt && (

@@ -80,7 +80,9 @@ async def get_task_status(
         result=task.result,
         error=task.error,
         created_at=task.created_at,
+        started_at=task.started_at,
         updated_at=task.updated_at,
+        duration_sec=task.duration_sec,
     )
 
 
@@ -101,6 +103,7 @@ async def list_tasks(
                 agent_name=t.agent_name,
                 status=t.status,
                 created_at=t.created_at,
+                duration_sec=t.duration_sec,
                 prompt_preview=t.metadata.get("prompt_preview") if t.metadata else None
             )
             for t in tasks
